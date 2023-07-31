@@ -16,10 +16,8 @@ class ResNetBackbone(nn.Module):
         self.name = name
         self.inplanes = 64
         super(ResNetBackbone, self).__init__()
-        ## <MODIFIED/>
-        self.conv1 = nn.Conv2d(6, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        ## </MODIFIED>
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -75,11 +73,8 @@ class ResNetBackbone(nn.Module):
     def init_weights(self):
         org_resnet = torch.utils.model_zoo.load_url(model_urls[self.name])
         # drop orginal resnet fc layer, add 'None' in case of no fc layer, that will raise error
-        print(type(org_resnet['conv1.weight']))
         org_resnet.pop('fc.weight', None)
         org_resnet.pop('fc.bias', None)
-        original_c1_weight = org_resnet['conv1.weight'].clone()
-        org_resnet['conv1.weight'] = torch.cat([original_c1_weight, original_c1_weight], dim=1)
-        
+
         self.load_state_dict(org_resnet)
         print("Initialize resnet from model zoo")

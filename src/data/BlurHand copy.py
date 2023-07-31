@@ -214,22 +214,7 @@ class BlurHand(torch.utils.data.Dataset):
         img, img2bb_trans, bb2img_trans, rot, do_flip = augmentation(img, bbox, self.data_split,
                                                                      self.opt_params['input_img_shape'],
                                                                      enforce_flip=(hand_type=='left'))
-        ## <MODIFIED/>
-        #img = self.transform(img.astype(np.float32)) / 255.
-
-        # same operations for segmentation image
-        blurry_image_path_parts = img_path.split(".")
-        blurry_image_path_parts[-2] += '-var'
-        seg_img_path = ".".join(blurry_image_path_parts)
-        seg_img = load_img(seg_img_path)
-        # enforce flip when left hand to make it right hand
-        seg_img, _, _, _, _ = augmentation(img, bbox, self.data_split,
-                                            self.opt_params['input_img_shape'],
-                                            enforce_flip=(hand_type=='left'))
-        img = np.concatenate((img, seg_img),axis=2)
         img = self.transform(img.astype(np.float32)) / 255.
-        ## </MODIFIED>
-        
 
         if self.data_split != 'train':
             do_flip = False
