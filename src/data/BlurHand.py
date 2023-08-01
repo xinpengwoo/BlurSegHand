@@ -214,20 +214,20 @@ class BlurHand(torch.utils.data.Dataset):
         img, img2bb_trans, bb2img_trans, rot, do_flip = augmentation(img, bbox, self.data_split,
                                                                      self.opt_params['input_img_shape'],
                                                                      enforce_flip=(hand_type=='left'))
+        img = self.transform(img.astype(np.float32)) / 255.
         ## <MODIFIED/>
-        #img = self.transform(img.astype(np.float32)) / 255.
+        
 
         # same operations for segmentation image
         blurry_image_path_parts = img_path.split(".")
         blurry_image_path_parts[-2] += '-var'
-        seg_img_path = ".".join(blurry_image_path_parts)
-        seg_img = load_img(seg_img_path)
+        seg_path = ".".join(blurry_image_path_parts)
+        seg = load_img(seg_path)
         # enforce flip when left hand to make it right hand
-        seg_img, _, _, _, _ = augmentation(img, bbox, self.data_split,
+        seg, _, _, _, _ = augmentation(seg, bbox, self.data_split,
                                             self.opt_params['input_img_shape'],
                                             enforce_flip=(hand_type=='left'))
-        img = np.concatenate((img, seg_img),axis=2)
-        img = self.transform(img.astype(np.float32)) / 255.
+        seg = self.transform(seg.astype(np.float32)) / 255.
         ## </MODIFIED>
         
 
@@ -320,7 +320,7 @@ class BlurHand(torch.utils.data.Dataset):
                 mano_pose_valid_future = np.zeros((mano.orig_joint_num*3), dtype=np.float32)
                 mano_shape_valid_future = float(False)
 
-            inputs = {'img': img, 'img_path': img_path}
+            inputs = {'img': img, 'img_path': img_path, 'seg': seg, 'seg_path': seg_path}
             targets = {'joint_img': joint_img, 'joint_img_past': joint_img_past, 'joint_img_future': joint_img_future,
                        'joint_cam_past': joint_cam_past, 'joint_cam': joint_cam, 'joint_cam_future': joint_cam_future,
                        'mano_joint_img': mano_joint_img,
@@ -338,7 +338,7 @@ class BlurHand(torch.utils.data.Dataset):
         
         # prepare data for testing
         else:
-            inputs = {'img': img, 'img_path': img_path}
+            inputs = {'img': img, 'img_path': img_path, 'seg': seg, 'seg_path': seg_path}
             targets = {'mano_pose': mano_pose, 'mano_shape': mano_shape}
             meta_info = {'bb2img_trans': bb2img_trans, 'hand_type': 1. if data['hand_type']=='right' else 0.}
 

@@ -17,17 +17,15 @@ class BlurHandNet(nn.Module):
         super().__init__()
         # define trainable module
         opt_net = opt['network']
-        self.img_backbone = ResNetBackbone()  # img backbone
-        self.seg_backbone = ResNetBackbone(**opt_net['backbone'])  # seg backbone
+        self.backbone = ResNetBackbone(**opt_net['backbone'])  # backbone
         self.unfolder = Unfolder(opt['task_parameters'], **opt_net['unfolder'])  #  Unfolder
         self.ktformer = KTFormer(opt['task_parameters'], **opt_net['ktformer'])  # KTFormer
         self.regressor = Regressor(opt['task_parameters'], **opt_net['regressor'])  # Regressor
-        self.trainable_modules = [self.img_backbone, self.seg_backbone, self.unfolder, self.ktformer, self.regressor]
+        self.trainable_modules = [self.backbone, self.unfolder, self.ktformer, self.regressor]
         
         # weight initialization
         if weight_init:
-            self.img_backbone.init_weights()
-            self.seg_backbone.init_weights()
+            self.backbone.init_weights()
             self.unfolder.apply(init_weights)
             self.ktformer.apply(init_weights)
             self.regressor.apply(init_weights)
@@ -48,13 +46,11 @@ class BlurHandNet(nn.Module):
         
     def forward(self, inputs, targets, meta_info, mode):
         # extract feature from backbone
-        feat_blur_img, feat_pyramid_img = self.img_backbone(inputs['img'])
-        feat_blur_seg, feat_pyramid_seg = self.seg_backbone(inputs['seg'])
-
-
+        feat_blur, feat_pyramid = self.backbone(inputs['img'])
+        
         # extract temporal information via Unfolder
         feat_joint_e1, feat_joint_md, feat_joint_e2, joint_img_e1, joint_img_md, joint_img_e2 = \
-            self.unfolder(feat_blur_img, feat_pyramid_img, feat_blur_seg, feat_pyramid_seg)
+            self.unfolder(feat_blur, feat_pyramid)
         
         # feature enhancing via KTFormer
         feat_joint_e1, feat_joint_md, feat_joint_e2 = \
@@ -62,7 +58,7 @@ class BlurHandNet(nn.Module):
         
         # regress mano shape, pose and camera parameter
         mano_shape_e1, mano_shape_md, mano_shape_e2, mano_pose_e1, mano_pose_md, mano_pose_e2, cam_param_e1, cam_param_md, cam_param_e2 = \
-            self.regressor(feat_blur_img, feat_joint_e1, feat_joint_md, feat_joint_e2, joint_img_e1.detach(), joint_img_md.detach(), joint_img_e2.detach())
+            self.regressor(feat_blur, feat_joint_e1, feat_joint_md, feat_joint_e2, joint_img_e1.detach(), joint_img_md.detach(), joint_img_e2.detach())
         
         # obtain camera translation to project 3D coordinates into 2D space
         cam_trans_e1, cam_trans_md, cam_trans_e2 = \

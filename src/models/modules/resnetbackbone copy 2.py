@@ -59,16 +59,16 @@ class ResNetBackbone(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        #feat_pyramid['stride2'] = x
+        feat_pyramid['stride2'] = x
         x = self.maxpool(x)
         x = self.layer1(x)
-        #feat_pyramid['stride4'] = x
+        feat_pyramid['stride4'] = x
         x = self.layer2(x)
         feat_pyramid['stride8'] = x
         x = self.layer3(x)
         feat_pyramid['stride16'] = x
         x = self.layer4(x)
-        #feat_pyramid['stride32'] = x
+        feat_pyramid['stride32'] = x
 
         return x, feat_pyramid
 
@@ -79,4 +79,4 @@ class ResNetBackbone(nn.Module):
         org_resnet.pop('fc.bias', None)
 
         self.load_state_dict(org_resnet)
-        print("Initialize resnet from model zoo")
+        print("Initialize img-resnet from model zoo")

@@ -13,14 +13,21 @@ class Unfolder(nn.Module):
         
         # make separate decoder for each time step
         self.decoder_e1 = Decoder(self.num_joints, self.output_hm_shape, **kwargs)  # end1
-        self.decoder_md = Decoder(self.num_joints, self.output_hm_shape, **kwargs)  # middle
+        self.decoder_md = Decoder(self.num_joints, self.output_hm_shape)  # middle
         self.decoder_e2 = Decoder(self.num_joints, self.output_hm_shape, **kwargs)  # end2
         
-    def forward(self, feat_blur, feat_pyramid):
+    def forward(self, feat_blur_img, feat_pyramid_img, feat_blur_seg, feat_pyramid_seg):
         # extract feature using each separate decoder
-        feat_e1, pred_heatmap_e1 = self.decoder_e1(feat_blur, feat_pyramid)
-        feat_md, pred_heatmap_md = self.decoder_md(feat_blur, feat_pyramid)
-        feat_e2, pred_heatmap_e2 = self.decoder_e2(feat_blur, feat_pyramid)
+        feat_md, pred_heatmap_md = self.decoder_md(feat_blur_img, feat_pyramid_img)
+
+        # <MODIFIED/> give 2 side decoder variance info
+        feat_blur_img_seg = torch.cat((feat_blur_img, feat_blur_seg), dim=1)
+        feat_pyramid_img_seg = {}
+        for key, value in feat_pyramid_img.items():
+            feat_pyramid_img_seg[key] = torch.cat((feat_pyramid_img[key], feat_pyramid_seg[key]), dim=1)
+        feat_e1, pred_heatmap_e1 = self.decoder_e1(feat_blur_img_seg, feat_pyramid_img_seg)
+        feat_e2, pred_heatmap_e2 = self.decoder_e2(feat_blur_img_seg, feat_pyramid_img_seg)
+        # <MODIFIED/>
 
         # obtain 3d joint coordinates using soft-argmax
         joint_img_e1 = soft_argmax_3d(pred_heatmap_e1.reshape(-1, self.num_joints, *self.output_hm_shape))

@@ -1,6 +1,6 @@
 name: BlurHandNet_BH
 num_gpus: 4  # if you want to set num_gpus as 1, increase the batch_size to 48
-num_threads: 24
+num_threads: 16
 manual_seed: 4543
 
 # task related parameters
@@ -25,10 +25,10 @@ dataset_list:
 # network structures
 network:
   backbone:
-    resnet_type: 50
+    resnet_type: 18
 
   unfolder:
-    in_chans: 2048
+    in_chans: 2560
     out_chans: 512
 
   ktformer:
@@ -44,7 +44,7 @@ network:
 # training configurations
 train:
   batch_size: 24
-  end_epoch: 13
+  end_epoch: 15
 
   optim:
     lr: !!float 1e-4

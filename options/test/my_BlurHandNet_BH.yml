@@ -22,10 +22,10 @@ dataset:
 # network structures
 network:
   backbone:
-    resnet_type: 50
+    resnet_type: 18
 
   unfolder:
-    in_chans: 2048
+    in_chans: 2560
     out_chans: 512
 
   ktformer:
@@ -43,5 +43,5 @@ test:
   save_obj: false
   visualize_video: false  # mesh sequence to video
   evaluate_both_ends: true  # evaluate hands on both ends
-  epoch: 13
+  epoch: 15
   batch_size: 128
