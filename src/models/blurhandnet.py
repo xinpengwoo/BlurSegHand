@@ -51,7 +51,6 @@ class BlurHandNet(nn.Module):
         feat_blur_img, feat_pyramid_img = self.img_backbone(inputs['img'])
         feat_blur_seg, feat_pyramid_seg = self.seg_backbone(inputs['seg'])
 
-
         # extract temporal information via Unfolder
         feat_joint_e1, feat_joint_md, feat_joint_e2, joint_img_e1, joint_img_md, joint_img_e2 = \
             self.unfolder(feat_blur_img, feat_pyramid_img, feat_blur_seg, feat_pyramid_seg)
