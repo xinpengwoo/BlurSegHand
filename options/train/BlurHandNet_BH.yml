@@ -48,7 +48,7 @@ train:
 
   optim:
     lr: !!float 1e-4
-    lr_dec_epoch: [11, 13] 
+    lr_dec_epoch: [10, 12, 14] 
     lr_dec_factor: !!float 10
 
   loss:

@@ -17,7 +17,11 @@ class ResNetBackbone(nn.Module):
         self.inplanes = 64
         super(ResNetBackbone, self).__init__()
         ## <MODIFIED/>
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        if resnet_type == 18:
+            self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        else:
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         ## </MODIFIED>
         self.bn1 = nn.BatchNorm2d(64)

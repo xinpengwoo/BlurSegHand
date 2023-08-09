@@ -4,7 +4,7 @@ import numpy as np
 import os
 import os.path as osp
 import torch
-
+import cv2
 from pycocotools.coco import COCO
 from utils.MANO import mano
 from utils.visualize import save_obj, seq2video
@@ -220,13 +220,15 @@ class BlurHand(torch.utils.data.Dataset):
 
         # same operations for segmentation image
         blurry_image_path_parts = img_path.split(".")
-        blurry_image_path_parts[-2] += '-var'
+        blurry_image_path_parts[-2] += '-var-mask'
         seg_path = ".".join(blurry_image_path_parts)
-        seg = load_img(seg_path)
+        seg = cv2.imread(seg_path, cv2.IMREAD_GRAYSCALE)
         # enforce flip when left hand to make it right hand
+        seg = np.repeat(seg[:, :, np.newaxis], 3, axis=2)
         seg, _, _, _, _ = augmentation(seg, bbox, self.data_split,
                                             self.opt_params['input_img_shape'],
                                             enforce_flip=(hand_type=='left'))
+        seg = seg[:,:,0]
         seg = self.transform(seg.astype(np.float32)) / 255.
         ## </MODIFIED>
         
