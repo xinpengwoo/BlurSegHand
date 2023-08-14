@@ -81,6 +81,9 @@ class ResNetBackbone(nn.Module):
         # drop orginal resnet fc layer, add 'None' in case of no fc layer, that will raise error
         org_resnet.pop('fc.weight', None)
         org_resnet.pop('fc.bias', None)
+        #original_c1_weight = org_resnet['conv1.weight'].clone()
+        if self.name == 'resnet18':
+            org_resnet['conv1.weight'] = org_resnet['conv1.weight'][:,0:1,:,:]
 
         self.load_state_dict(org_resnet)
         print("Initialize resnet from model zoo")
