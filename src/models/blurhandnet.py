@@ -3,14 +3,14 @@ import math
 import torch
 import torch.nn as nn
 
-from losses import CoordLoss, ParamLoss, CoordLossOrderInvariant
+from losses import CoordLoss, ParamLoss, CoordLossOrderInvariant, DiceBCELoss
 from models.modules.ktformer import KTFormer
 from models.modules.regressor import Regressor
 from models.modules.resnetbackbone import ResNetBackbone
 from models.modules.unfolder import Unfolder
 from models.modules.layer_utils import init_weights
 from utils.MANO import mano
-
+from models.modules.unetDecoder import UnetDecoder
 
 class BlurHandNet(nn.Module):
     def __init__(self, opt, weight_init=True):
@@ -19,6 +19,7 @@ class BlurHandNet(nn.Module):
         opt_net = opt['network']
         self.img_backbone = ResNetBackbone()  # img backbone
         self.seg_backbone = ResNetBackbone(**opt_net['backbone'])  # seg backbone
+        self.seg_unetDecoder = UnetDecoder(model="resnet34") # seg decoder
         self.unfolder = Unfolder(opt['task_parameters'], **opt_net['unfolder'])  #  Unfolder
         self.ktformer = KTFormer(opt['task_parameters'], **opt_net['ktformer'])  # KTFormer
         self.regressor = Regressor(opt['task_parameters'], **opt_net['regressor'])  # Regressor
@@ -28,6 +29,7 @@ class BlurHandNet(nn.Module):
         if weight_init:
             self.img_backbone.init_weights()
             self.seg_backbone.init_weights()
+            self.seg_unetDecoder.apply(init_weights)
             self.unfolder.apply(init_weights)
             self.ktformer.apply(init_weights)
             self.regressor.apply(init_weights)
@@ -40,16 +42,19 @@ class BlurHandNet(nn.Module):
         self.coord_loss = CoordLoss()
         self.coord_loss_order_invariant = CoordLossOrderInvariant()
         self.param_loss = ParamLoss()
-        
+        self.seg_loss = DiceBCELoss()
         # parameters
         self.opt_params = opt['task_parameters']
         if opt.get('train', False):
             self.opt_loss = opt['train']['loss']
         
     def forward(self, inputs, targets, meta_info, mode):
-        # extract feature from backbone
+        # extract image feature from backbone
         feat_blur_img, feat_pyramid_img = self.img_backbone(inputs['img'])
-        feat_blur_seg, feat_pyramid_seg = self.seg_backbone(inputs['seg'])
+        # segmentation
+        seg_mask = self.seg_unetDecoder(feat_pyramid_img)
+        # extract seg mask feature from backbone
+        feat_blur_seg, feat_pyramid_seg = self.seg_backbone(seg_mask)
 
 
         # extract temporal information via Unfolder
@@ -79,6 +84,9 @@ class BlurHandNet(nn.Module):
         if mode == 'train':
             loss = {}
             
+            # losses on segegmentation mask
+            loss['seg_mask'] = self.opt_loss['lambda_seg_mask'] * self.seg_loss(seg_mask, targets['seg_mask'])
+
             # losses on middle hand; we do not have to consider "order"
             loss['joint_img'] = self.opt_loss['lambda_joint_img'] * self.coord_loss(joint_img_md, targets['joint_img'], meta_info['joint_trunc'], meta_info['is_3D'])
             loss['joint_proj'] = self.opt_loss['lambda_joint_proj'] * self.coord_loss(joint_proj_md, targets['joint_img'][:,:,:2], meta_info['joint_trunc'])
@@ -123,6 +131,7 @@ class BlurHandNet(nn.Module):
             out['img'] = inputs['img']
             
             # our model predictions
+            out['seg_mask'] = seg_mask
             # when evaluating hands in both ends, MPJPE will be calculated in order of minimizing the value
             out['mano_mesh_cam'] = mesh_cam_md
             out['mano_mesh_cam_past'] = mesh_cam_e1

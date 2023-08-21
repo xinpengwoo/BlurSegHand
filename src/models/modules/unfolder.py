@@ -43,7 +43,7 @@ class Unfolder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, num_joints, output_hm_shape, in_chans=2048, out_chans=512):
+    def __init__(self, num_joints, output_hm_shape, in_chans=512, out_chans=512):
         super().__init__()
         self.num_joints = num_joints
         self.output_hm_shape = output_hm_shape 

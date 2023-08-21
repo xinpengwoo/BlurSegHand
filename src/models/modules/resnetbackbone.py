@@ -5,7 +5,7 @@ from torchvision.models.resnet import model_urls
 
 class ResNetBackbone(nn.Module):
 
-    def __init__(self, resnet_type=50):
+    def __init__(self, resnet_type=34):
         resnet_spec = {18: (BasicBlock, [2, 2, 2, 2], [64, 64, 128, 256, 512], 'resnet18'),
 		       34: (BasicBlock, [3, 4, 6, 3], [64, 64, 128, 256, 512], 'resnet34'),
 		       50: (Bottleneck, [3, 4, 6, 3], [64, 256, 512, 1024, 2048], 'resnet50'),
@@ -63,16 +63,16 @@ class ResNetBackbone(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        #feat_pyramid['stride2'] = x
+        feat_pyramid['stride2'] = x
         x = self.maxpool(x)
         x = self.layer1(x)
-        #feat_pyramid['stride4'] = x
+        feat_pyramid['stride4'] = x
         x = self.layer2(x)
         feat_pyramid['stride8'] = x
         x = self.layer3(x)
         feat_pyramid['stride16'] = x
         x = self.layer4(x)
-        #feat_pyramid['stride32'] = x
+        feat_pyramid['stride32'] = x
 
         return x, feat_pyramid
 

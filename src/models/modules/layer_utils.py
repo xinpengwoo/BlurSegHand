@@ -1,5 +1,18 @@
 import torch.nn as nn
 
+def make_unet_deconv_layers(in_channels, middle_channels, out_channels):
+    """
+    Paramaters for Deconvolution were chosen to avoid artifacts, following
+    link https://distill.pub/2016/deconv-checkerboard/
+    """    
+    layers = []
+    layers.append(nn.Conv2d(in_channels, middle_channels, 3, padding=1))
+    layers.append(nn.ReLU(inplace=True))
+    layers.append(nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1))
+    layers.append(nn.ReLU(inplace=True))
+
+    return nn.Sequential(*layers)
+  
 def make_linear_layers(feat_dims, relu_final=True, use_bn=False):
     layers = []
     for i in range(len(feat_dims)-1):
