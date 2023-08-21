@@ -5,7 +5,7 @@ from torchvision.models.resnet import model_urls
 
 class ResNetBackbone(nn.Module):
 
-    def __init__(self, resnet_type=34):
+    def __init__(self, resnet_type=50):
         resnet_spec = {18: (BasicBlock, [2, 2, 2, 2], [64, 64, 128, 256, 512], 'resnet18'),
 		       34: (BasicBlock, [3, 4, 6, 3], [64, 64, 128, 256, 512], 'resnet34'),
 		       50: (Bottleneck, [3, 4, 6, 3], [64, 256, 512, 1024, 2048], 'resnet50'),
@@ -17,7 +17,7 @@ class ResNetBackbone(nn.Module):
         self.inplanes = 64
         super(ResNetBackbone, self).__init__()
         ## <MODIFIED/>
-        if resnet_type == 18:
+        if resnet_type != 50:
             self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         else:
@@ -82,7 +82,7 @@ class ResNetBackbone(nn.Module):
         org_resnet.pop('fc.weight', None)
         org_resnet.pop('fc.bias', None)
         #original_c1_weight = org_resnet['conv1.weight'].clone()
-        if self.name == 'resnet18':
+        if self.name != 'resnet50':
             org_resnet['conv1.weight'] = org_resnet['conv1.weight'][:,0:1,:,:]
 
         self.load_state_dict(org_resnet)

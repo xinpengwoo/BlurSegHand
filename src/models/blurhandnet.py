@@ -19,7 +19,7 @@ class BlurHandNet(nn.Module):
         opt_net = opt['network']
         self.img_backbone = ResNetBackbone()  # img backbone
         self.seg_backbone = ResNetBackbone(**opt_net['backbone'])  # seg backbone
-        self.seg_unetDecoder = UnetDecoder(model="resnet34") # seg decoder
+        self.seg_unetDecoder = UnetDecoder() # seg decoder
         self.unfolder = Unfolder(opt['task_parameters'], **opt_net['unfolder'])  #  Unfolder
         self.ktformer = KTFormer(opt['task_parameters'], **opt_net['ktformer'])  # KTFormer
         self.regressor = Regressor(opt['task_parameters'], **opt_net['regressor'])  # Regressor
