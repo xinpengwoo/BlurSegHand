@@ -1,34 +1,44 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import numpy as np
 
+def dice_coef(y_true, y_pred, eps=1e-15, smooth=1.):
+    intersection = np.sum(y_true * y_pred)
+    union = np.sum(y_true) + np.sum(y_pred)
+    return (2. * intersection + smooth) / (union + smooth + eps)
+
+def jaccard(intersection, union, eps=1e-15):
+    return (intersection) / (union - intersection + eps)
+
+def dice(intersection, union, eps=1e-15, smooth=1.):
+    return (2. * intersection + smooth) / (union + smooth + eps)
 
 class DiceBCELoss(nn.Module):
-    def __init__(self):
-        super(DiceBCELoss, self).__init__()
 
-    def forward(self, inputs, targets, smooth=1):
-        
-        # Comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = torch.sigmoid(inputs)
-        
-        # Flatten label and prediction tensors
-        batch_size = inputs.size(0)
-        
-        inputs = inputs.view(batch_size, -1)
+    def __init__(self, bce_weight=0.5, mode="dice", eps=1e-7, weight='none', smooth=1.):
+        super(DiceBCELoss, self).__init__()
+        self.bce_loss = nn.BCELoss(reduction=weight)
+        self.bce_weight = bce_weight
+        self.eps = eps
+        self.mode = mode
+        self.smooth = smooth
+
+    def forward(self, outputs, targets):
+        batch_size = outputs.size(0)
+        outputs = outputs.view(batch_size, -1)
         targets = targets.view(batch_size, -1)
-        
-        intersection = (inputs * targets).sum(dim=1)
-        dice_loss = 1 - (2.*intersection + smooth) / (inputs.sum(dim=1) + targets.sum(dim=1) + smooth)
-        
-        BCEloss = nn.BCELoss(reduction='none')
-        BCE = BCEloss(inputs, targets)
-        BCE = torch.mean(BCE,1)
-        #BCE = F.binary_cross_entropy(inputs, targets, reduction='none')
-                
-        Dice_BCE = BCE + dice_loss
-        
-        return Dice_BCE
+        outputs = torch.sigmoid(outputs)    
+        loss = self.bce_weight * torch.mean(self.bce_loss(outputs, targets),1)
+
+        if self.bce_weight < 1.:
+            intersection = (outputs * targets).sum(dim=1)
+            union = outputs.sum(dim=1) + targets.sum(dim=1)
+            if self.mode == "dice":
+                score = dice(intersection, union, self.eps, self.smooth)
+            elif self.mode == "jaccard":
+                score = jaccard(intersection, union, self.eps)
+            loss -= (1 - self.bce_weight) * torch.log(score)
+        return loss
 
     
 class CoordLoss(nn.Module):

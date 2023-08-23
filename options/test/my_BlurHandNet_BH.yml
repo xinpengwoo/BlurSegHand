@@ -1,5 +1,5 @@
 name: BlurHandNet_BH
-num_gpus: 2  # set num_gpus: 0 for cpu mode
+num_gpus: 1  # set num_gpus: 0 for cpu mode
 num_threads: 24
 manual_seed: 0
 
@@ -22,10 +22,10 @@ dataset:
 # network structures
 network:
   backbone:
-    resnet_type: 18
+    resnet_type: 34
 
   unfolder:
-    in_chans: 1024
+    in_chans: 2560
     out_chans: 512
 
   ktformer:
@@ -35,7 +35,7 @@ network:
     num_heads: 4
 
   regressor:
-    in_chans: 512
+    in_chans: 2048
     in_chans_pose: 512
 
 # testing configurations
@@ -43,5 +43,5 @@ test:
   save_obj: false
   visualize_video: false  # mesh sequence to video
   evaluate_both_ends: true  # evaluate hands on both ends
-  epoch: 15
-  batch_size: 128
+  epoch: 13
+  batch_size: 256

@@ -10,7 +10,7 @@ from utils.MANO import mano
 from utils.visualize import save_obj, seq2video
 from utils.preprocessing import load_img, get_bbox, process_bbox, augmentation, process_db_coord_pcf, process_human_model_output
 from utils.transforms import world2cam, cam2pixel, transform_joint_to_other_db
-
+from losses import dice_coef
 
 class BlurHand(torch.utils.data.Dataset):
     def __init__(self, opt, opt_data, transform, data_split):
@@ -214,10 +214,9 @@ class BlurHand(torch.utils.data.Dataset):
         img, img2bb_trans, bb2img_trans, rot, do_flip = augmentation(img, bbox, self.data_split,
                                                                      self.opt_params['input_img_shape'],
                                                                      enforce_flip=(hand_type=='left'))
-        img = self.transform(img.astype(np.float32)) / 255.
-        ## <MODIFIED/>
-        
+        img = self.transform(img.astype(np.float32))  / 255.
 
+        ## <MODIFIED/>
         # same operations for segmentation image
         blurry_image_path_parts = img_path.split(".")
         blurry_image_path_parts[-2] += '-var-mask'
@@ -229,7 +228,7 @@ class BlurHand(torch.utils.data.Dataset):
                                             self.opt_params['input_img_shape'],
                                             enforce_flip=(hand_type=='left'))
         seg = seg[:,:,0]
-        seg = self.transform(seg.astype(np.float32)) / 255.
+        seg = self.transform(seg.astype(np.float32))
         ## </MODIFIED>
         
 
@@ -323,7 +322,7 @@ class BlurHand(torch.utils.data.Dataset):
                 mano_shape_valid_future = float(False)
 
             inputs = {'img': img, 'img_path': img_path}
-            targets = {'seg_mask': seg, 'seg_path': seg_path,
+            targets = {'seg_mask': seg,
                        'joint_img': joint_img, 'joint_img_past': joint_img_past, 'joint_img_future': joint_img_future,
                        'joint_cam_past': joint_cam_past, 'joint_cam': joint_cam, 'joint_cam_future': joint_cam_future,
                        'mano_joint_img': mano_joint_img,
@@ -342,7 +341,7 @@ class BlurHand(torch.utils.data.Dataset):
         # prepare data for testing
         else:
             inputs = {'img': img, 'img_path': img_path}
-            targets = {'seg': seg, 'seg_path': seg_path, 'mano_pose': mano_pose, 'mano_shape': mano_shape}
+            targets = {'seg_mask': seg, 'mano_pose': mano_pose, 'mano_shape': mano_shape}
             meta_info = {'bb2img_trans': bb2img_trans, 'hand_type': 1. if data['hand_type']=='right' else 0.}
 
         return inputs, targets, meta_info
@@ -353,7 +352,8 @@ class BlurHand(torch.utils.data.Dataset):
         eval_result = {'mpjpe_current': [[] for _ in range(self.joint_set['hand']['joint_num'])],
                        'mpjpe_past': [[] for _ in range(self.joint_set['hand']['joint_num'])],
                        'mpjpe_future': [[] for _ in range(self.joint_set['hand']['joint_num'])],
-                       'mpvpe': []}
+                       'mpvpe': [],
+                       'Dice': []}
 
         for n in range(sample_num):
             annot = annots[cur_sample_idx + n]
@@ -426,6 +426,9 @@ class BlurHand(torch.utils.data.Dataset):
             # calculating MPVPE
             if annot['mano_param'] is not None:
                 eval_result['mpvpe'].append((np.sqrt(np.sum(((mesh_out - mesh_gt)**2), 1)) * 1000).mean())
+            # calculating Dice
+            if out['seg_mask'] is not None:
+                eval_result['Dice'].append(dice_coef(out['seg_mask'], out['seg_mask_gt']))
 
             # calculating MPJPE
             past_pred_err_pf = []
@@ -465,7 +468,7 @@ class BlurHand(torch.utils.data.Dataset):
     def print_eval_result(self, logger, eval_result, evaluate_both_ends):
 
         for k, v in eval_result.items():
-            if k != 'mpvpe':
+            if k != 'mpvpe' and k != 'Dice':
                 for j in range(self.joint_set['hand']['joint_num']):
                     v[j] = np.mean(np.stack(v[j]))
             eval_result[k] = v
@@ -474,7 +477,7 @@ class BlurHand(torch.utils.data.Dataset):
             logger.info('MPJPE @ PAST: %.2f mm' % np.mean(eval_result['mpjpe_past']))
             logger.info('MPJPE @ FUTURE: %.2f mm' % np.mean(eval_result['mpjpe_future']))    
         logger.info('MPVPE @ CURRENT: %.2f mm' % np.mean(eval_result['mpvpe']))
-        
+        logger.info('Dice @ CURRENT: %.2f mm' % np.mean(eval_result['Dice']))
         return
     
     def __len__(self):

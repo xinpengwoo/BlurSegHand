@@ -23,7 +23,7 @@ class BlurHandNet(nn.Module):
         self.unfolder = Unfolder(opt['task_parameters'], **opt_net['unfolder'])  #  Unfolder
         self.ktformer = KTFormer(opt['task_parameters'], **opt_net['ktformer'])  # KTFormer
         self.regressor = Regressor(opt['task_parameters'], **opt_net['regressor'])  # Regressor
-        self.trainable_modules = [self.img_backbone, self.seg_backbone, self.unfolder, self.ktformer, self.regressor]
+        self.trainable_modules = [self.img_backbone, self.seg_backbone, self.seg_unetDecoder, self.unfolder, self.ktformer, self.regressor]
         
         # weight initialization
         if weight_init:
@@ -132,6 +132,7 @@ class BlurHandNet(nn.Module):
             
             # our model predictions
             out['seg_mask'] = seg_mask
+            out['seg_mask_gt'] = targets['seg_mask']
             # when evaluating hands in both ends, MPJPE will be calculated in order of minimizing the value
             out['mano_mesh_cam'] = mesh_cam_md
             out['mano_mesh_cam_past'] = mesh_cam_e1
