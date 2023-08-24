@@ -7,7 +7,7 @@ import torch
 import cv2
 from pycocotools.coco import COCO
 from utils.MANO import mano
-from utils.visualize import save_obj, seq2video
+from utils.visualize import save_obj, seq2video, save_seg
 from utils.preprocessing import load_img, get_bbox, process_bbox, augmentation, process_db_coord_pcf, process_human_model_output
 from utils.transforms import world2cam, cam2pixel, transform_joint_to_other_db
 from losses import dice_coef
@@ -229,6 +229,7 @@ class BlurHand(torch.utils.data.Dataset):
                                             enforce_flip=(hand_type=='left'))
         seg = seg[:,:,0]
         seg = self.transform(seg.astype(np.float32))
+        seg[seg > 0.] = 1.
         ## </MODIFIED>
         
 
@@ -411,6 +412,10 @@ class BlurHand(torch.utils.data.Dataset):
                 obj_dir = osp.join('experiments', self.opt['name'], 'results', 'obj', *annot['img_path'].split('/')[-5:-1])
                 os.makedirs(obj_dir, exist_ok=True)
                 
+                if out['seg_mask'] is not None:
+                    save_seg(osp.join(obj_dir, f'{basename}_seg.png'), out['seg_mask'])
+                    save_seg(osp.join(obj_dir, f'{basename}_seg_GT.png'), out['seg_mask_gt'])
+
                 save_obj(mesh_out*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}.obj'))
                 save_obj(mesh_out_past*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_p.obj'))
                 save_obj(mesh_out_future*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_f.obj'))
@@ -428,7 +433,10 @@ class BlurHand(torch.utils.data.Dataset):
                 eval_result['mpvpe'].append((np.sqrt(np.sum(((mesh_out - mesh_gt)**2), 1)) * 1000).mean())
             # calculating Dice
             if out['seg_mask'] is not None:
-                eval_result['Dice'].append(dice_coef(out['seg_mask'], out['seg_mask_gt']))
+                seg = out['seg_mask'].copy()
+                seg[seg>0] = 1.
+                seg[seg<=0] = 0.
+                eval_result['Dice'].append(dice_coef(seg, out['seg_mask_gt']))
 
             # calculating MPJPE
             past_pred_err_pf = []

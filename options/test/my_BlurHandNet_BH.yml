@@ -40,8 +40,8 @@ network:
 
 # testing configurations
 test:
-  save_obj: false
-  visualize_video: false  # mesh sequence to video
+  save_obj: true
+  visualize_video: true  # mesh sequence to video
   evaluate_both_ends: true  # evaluate hands on both ends
-  epoch: 13
+  epoch: 15
   batch_size: 256

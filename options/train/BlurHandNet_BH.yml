@@ -44,7 +44,7 @@ network:
 # training configurations
 train:
   batch_size: 48
-  end_epoch: 15
+  end_epoch: 18
 
   optim:
     lr: !!float 1e-4
@@ -52,7 +52,7 @@ train:
     lr_dec_factor: !!float 10
 
   loss:
-    lambda_seg_mask: !!float 1
+    lambda_seg_mask: !!float 0.5
     lambda_joint_img: !!float 0.25
     lambda_joint_cam: !!float 10
     lambda_joint_proj: !!float 0.0625

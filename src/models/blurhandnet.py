@@ -20,6 +20,7 @@ class BlurHandNet(nn.Module):
         self.img_backbone = ResNetBackbone()  # img backbone
         self.seg_backbone = ResNetBackbone(**opt_net['backbone'])  # seg backbone
         self.seg_unetDecoder = UnetDecoder() # seg decoder
+        
         self.unfolder = Unfolder(opt['task_parameters'], **opt_net['unfolder'])  #  Unfolder
         self.ktformer = KTFormer(opt['task_parameters'], **opt_net['ktformer'])  # KTFormer
         self.regressor = Regressor(opt['task_parameters'], **opt_net['regressor'])  # Regressor
@@ -55,7 +56,6 @@ class BlurHandNet(nn.Module):
         seg_mask = self.seg_unetDecoder(feat_pyramid_img)
         # extract seg mask feature from backbone
         feat_blur_seg, feat_pyramid_seg = self.seg_backbone(seg_mask)
-
 
         # extract temporal information via Unfolder
         feat_joint_e1, feat_joint_md, feat_joint_e2, joint_img_e1, joint_img_md, joint_img_e2 = \

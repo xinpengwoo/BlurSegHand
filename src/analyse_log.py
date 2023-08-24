@@ -29,7 +29,7 @@ def plot_loss_trend(log_data, loss_name):
     plt.close()  # Close the plot to free up memory
 
 
-log_file_path = '/home/hcvl/Xinpeng/BlurHand_RELEASE/experiments/BlurHandNet_BH/train_logs.txt'  # Replace with the actual path to your log file
+log_file_path = "/home/zzq/Xinpeng/BlurHand_RELEASE/experiments/BlurHandNet_BH/train_logs.txt" # Replace with the actual path to your log file
 
 extracted_data = []
 

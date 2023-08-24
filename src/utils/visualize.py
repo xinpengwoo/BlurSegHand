@@ -219,6 +219,14 @@ def vis_3d_skeleton_pcf(kpt_3d_p, kpt_3d_c, kpt_3d_f, kpt_3d_vis, kps_lines, fil
     # plt.show()
     # cv2.waitKey(0)
 
+def save_seg(save_path, seg):
+    # convert seg torch tensor to numpy array with unit8
+    seg = seg.copy().astype(np.uint8)
+    seg = seg[0, :, :]
+    seg[seg>0] = 255
+    seg[seg<=0] = 0
+    cv2.imwrite(save_path, seg)
+
 def save_obj(v, f, file_name='output.obj'):
     obj_file = open(file_name, 'w')
     for i in range(len(v)):
