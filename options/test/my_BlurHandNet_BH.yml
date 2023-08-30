@@ -1,5 +1,5 @@
-name: BlurHandNet_BH
-num_gpus: 1  # set num_gpus: 0 for cpu mode
+name: test3_fuser
+num_gpus: 2  # set num_gpus: 0 for cpu mode
 num_threads: 24
 manual_seed: 0
 
@@ -40,8 +40,8 @@ network:
 
 # testing configurations
 test:
-  save_obj: true
-  visualize_video: true  # mesh sequence to video
+  save_obj: false
+  visualize_video: false  # mesh sequence to video
   evaluate_both_ends: true  # evaluate hands on both ends
   epoch: 15
   batch_size: 256

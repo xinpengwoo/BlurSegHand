@@ -12,14 +12,15 @@ def main():
     # seg2 = cv2.imread(seg2_path, cv2.IMREAD_GRAYSCALE)
 
         # Create a sample binary image tensor as a 2D PyTorch tensor
-    binary_image_tensor = torch.tensor([[0, 1, 0],
-                                        [1, 0, 1],
-                                        [0, 1, 0]], dtype=torch.uint8)
+    binary_image_tensor = torch.tensor([[-0.1, -214, -0.5],
+                                        [-5.2, -0.4, 23.1],
+                                        [-10.2, 13.3, 5.3]], dtype=torch.float32)
 
     # Convert the tensor to a NumPy array
     binary_image_np = binary_image_tensor.numpy()
     binary_image_np[binary_image_np>0] = 255
     binary_image_np[binary_image_np<=0] = 0
+    binary_image_np = binary_image_np.astype(np.uint8)
     # Save the binary image using OpenCV
     output_path = './binary_image.png'  # Change the extension based on your desired format
     cv2.imwrite(output_path, binary_image_np)

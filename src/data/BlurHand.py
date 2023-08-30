@@ -214,6 +214,10 @@ class BlurHand(torch.utils.data.Dataset):
         img, img2bb_trans, bb2img_trans, rot, do_flip = augmentation(img, bbox, self.data_split,
                                                                      self.opt_params['input_img_shape'],
                                                                      enforce_flip=(hand_type=='left'))
+        # processed_image_path_parts = img_path.split(".")
+        # processed_image_path_parts[-2] += '_processed'
+        # processed_image_path = ".".join(processed_image_path_parts)
+        # cv2.imwrite(processed_image_path, img[:,:,::-1].copy())
         img = self.transform(img.astype(np.float32))  / 255.
 
         ## <MODIFIED/>
@@ -323,7 +327,7 @@ class BlurHand(torch.utils.data.Dataset):
                 mano_shape_valid_future = float(False)
 
             inputs = {'img': img, 'img_path': img_path}
-            targets = {'seg_mask': seg,
+            targets = {'seg_mask': seg, 
                        'joint_img': joint_img, 'joint_img_past': joint_img_past, 'joint_img_future': joint_img_future,
                        'joint_cam_past': joint_cam_past, 'joint_cam': joint_cam, 'joint_cam_future': joint_cam_future,
                        'mano_joint_img': mano_joint_img,
@@ -406,6 +410,14 @@ class BlurHand(torch.utils.data.Dataset):
                 mesh_out_past[:,0] *= -1
                 mesh_out_future[:,0] *= -1
             
+            # calculating Dice
+            if out['seg_mask'] is not None:
+                seg = out['seg_mask'].copy()
+                seg[seg>0] = 1.
+                seg[seg<=0] = 0.
+                dic = dice_coef(seg, out['seg_mask_gt'])
+                eval_result['Dice'].append(dic)
+
             # save obj files
             basename, _ = osp.splitext(osp.basename(annot['img_path']))
             if self.opt['test'].get('save_obj', False):
@@ -413,6 +425,12 @@ class BlurHand(torch.utils.data.Dataset):
                 os.makedirs(obj_dir, exist_ok=True)
                 
                 if out['seg_mask'] is not None:
+                    if dic > 0.8:
+                        base_directory = "/home/zzq/Xinpeng/BlurHand_RELEASE/"
+                        txt_file_path = os.path.join(base_directory, "seg_masks_dce_greater08.txt")
+                        with open(txt_file_path, "a") as file:
+                            file_path = annot['img_path']
+                            file.write(f"{dic}, {file_path}\n")   
                     save_seg(osp.join(obj_dir, f'{basename}_seg.png'), out['seg_mask'])
                     save_seg(osp.join(obj_dir, f'{basename}_seg_GT.png'), out['seg_mask_gt'])
 
@@ -431,12 +449,7 @@ class BlurHand(torch.utils.data.Dataset):
             # calculating MPVPE
             if annot['mano_param'] is not None:
                 eval_result['mpvpe'].append((np.sqrt(np.sum(((mesh_out - mesh_gt)**2), 1)) * 1000).mean())
-            # calculating Dice
-            if out['seg_mask'] is not None:
-                seg = out['seg_mask'].copy()
-                seg[seg>0] = 1.
-                seg[seg<=0] = 0.
-                eval_result['Dice'].append(dice_coef(seg, out['seg_mask_gt']))
+            
 
             # calculating MPJPE
             past_pred_err_pf = []
