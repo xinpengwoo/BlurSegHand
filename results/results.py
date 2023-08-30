@@ -6,7 +6,7 @@ input = "  datasets/BlurHand/blur_images/test/Capture0/ROM07_RT_Finger_Occlusion
 input = input.strip()
 experiments_base = "./experiments/BlurHandNet_BH/results/obj"
 obj_base = "./experiments/pretrained_BlurHandNet_BH/results/obj"
-
+video_base = "./experiments/pretrained_BlurHandNet_BH/results/video"
 
 
 seg_path_parts = input.split(".")
@@ -43,3 +43,6 @@ shutil.copy(obj_path, f"./results/{base_name}_f.obj")
 seg_path_parts[-1] = base_name + '_p' + '.obj'
 obj_path = os.path.join(obj_base, '/'.join(seg_path_parts))
 shutil.copy(obj_path, f"./results/{base_name}_p.obj")
+seg_path_parts[-1] = base_name +'_video'+ '.mp4'
+obj_path = os.path.join(video_base, '/'.join(seg_path_parts))
+shutil.copy(obj_path, f"./results/{base_name}_video.mp4")
