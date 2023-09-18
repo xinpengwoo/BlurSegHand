@@ -1,6 +1,6 @@
 name: BlurHandNet_BH
-num_gpus: 1  # if you want to set num_gpus as 1, increase the batch_size to 48
-num_threads: 16
+num_gpus: 2  # if you want to set num_gpus as 1, increase the batch_size to 48
+num_threads: 32
 manual_seed: 4543
 #continue_train: true
 # task related parameters
@@ -34,7 +34,7 @@ network:
   ktformer:
     in_chans: 512
     embed_dim: 512
-    num_blocks: 4
+    num_blocks: 6
     num_heads: 4
 
   regressor:

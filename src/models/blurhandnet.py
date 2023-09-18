@@ -54,7 +54,12 @@ class BlurHandNet(nn.Module):
         feat_blur_img, feat_pyramid_img = self.img_backbone(inputs['img'])
         # segmentation
         seg_mask = self.seg_unetDecoder(feat_pyramid_img)
-        # extract seg mask feature from backbone
+        # img = inputs['img'].clone()
+        # for i in range(img.shape[0]):
+        #     for channel in range(img.shape[1]):
+        #         img[i, channel][seg_mask[i, 0] > 0] = 0
+
+        # extract seg masked image feature from backbone
         feat_blur_seg, feat_pyramid_seg = self.seg_backbone(seg_mask)
 
         # extract temporal information via Unfolder
@@ -141,27 +146,28 @@ class BlurHandNet(nn.Module):
             # ground-truth mano coordinate
             with torch.no_grad():
                 batch_size = inputs['img'].shape[0]
-                mesh_coord_cam_gt = torch.zeros((batch_size, mano.vertex_num, 3)).cuda()
+                for i in ['', '_past', '_future']:
+                    mesh_coord_cam_gt = torch.zeros((batch_size, mano.vertex_num, 3)).cuda()
 
-                pose_param_right = targets['mano_pose'][meta_info['hand_type']==1]
-                shape_param_right = targets['mano_shape'][meta_info['hand_type']==1]
-                
-                if pose_param_right.shape[0] != 0:
-                    mano_output_right_gt = self.mano_layer_right(global_orient=pose_param_right[:,:3], hand_pose=pose_param_right[:,3:], betas=shape_param_right)
-                    mesh_coord_cam_right_gt = mano_output_right_gt.vertices
-                    mesh_coord_cam_right_gt -= mano_output_right_gt.joints[:,0,:][:,None,:]
-                    mesh_coord_cam_gt[meta_info['hand_type']==1] = mesh_coord_cam_right_gt
-
-                pose_param_left = targets['mano_pose'][meta_info['hand_type']==0]
-                shape_param_left = targets['mano_shape'][meta_info['hand_type']==0]
-                
-                if pose_param_left.shape[0] != 0:
-                    mano_output_left_gt = self.mano_layer_left(global_orient=pose_param_left[:,:3], hand_pose=pose_param_left[:,3:], betas=shape_param_left)
-                    mesh_coord_cam_left_gt = mano_output_left_gt.vertices
-                    mesh_coord_cam_left_gt -= mano_output_left_gt.joints[:,0,:][:,None,:]
-                    mesh_coord_cam_gt[meta_info['hand_type']==0] = mesh_coord_cam_left_gt
+                    pose_param_right = targets['mano_pose'+i][meta_info['hand_type']==1]
+                    shape_param_right = targets['mano_shape'+i][meta_info['hand_type']==1]
                     
-                out['mesh_coord_cam_gt'] = mesh_coord_cam_gt
+                    if pose_param_right.shape[0] != 0:
+                        mano_output_right_gt = self.mano_layer_right(global_orient=pose_param_right[:,:3], hand_pose=pose_param_right[:,3:], betas=shape_param_right)
+                        mesh_coord_cam_right_gt = mano_output_right_gt.vertices
+                        mesh_coord_cam_right_gt -= mano_output_right_gt.joints[:,0,:][:,None,:]
+                        mesh_coord_cam_gt[meta_info['hand_type']==1] = mesh_coord_cam_right_gt
+
+                    pose_param_left = targets['mano_pose'+i][meta_info['hand_type']==0]
+                    shape_param_left = targets['mano_shape'+i][meta_info['hand_type']==0]
+                    
+                    if pose_param_left.shape[0] != 0:
+                        mano_output_left_gt = self.mano_layer_left(global_orient=pose_param_left[:,:3], hand_pose=pose_param_left[:,3:], betas=shape_param_left)
+                        mesh_coord_cam_left_gt = mano_output_left_gt.vertices
+                        mesh_coord_cam_left_gt -= mano_output_left_gt.joints[:,0,:][:,None,:]
+                        mesh_coord_cam_gt[meta_info['hand_type']==0] = mesh_coord_cam_left_gt
+                        
+                    out['mesh_coord_cam_gt'+i] = mesh_coord_cam_gt
 
             if 'bb2img_trans' in meta_info:
                 out['bb2img_trans'] = meta_info['bb2img_trans']

@@ -44,6 +44,9 @@ class BlurHand(torch.utils.data.Dataset):
                                                 'left': np.arange(self.joint_set['hand']['joint_num'],
                                                                   self.joint_set['hand']['joint_num']*2)}
         self.joint_set['hand']['root_joint_idx'] = self.joint_set['hand']['joints_name'].index('Wrist')
+        self.inference_mode = opt['inference_mode'] if opt.get('inference_mode', False) else False
+        if self.inference_mode:
+            self.inference_path = opt['inference_path']
         self.datalist = self.load_data()
 
     def load_data(self):
@@ -65,12 +68,16 @@ class BlurHand(torch.utils.data.Dataset):
             # load annotation only if the image_id corresponds to the middle frame of BlurHand
             if not ann['is_middle']:
                 continue
-
+            
             # load each item from annotation
             image_id = ann['image_id']
             img = db.loadImgs(image_id)[0]
             img_width, img_height = img['width'], img['height']
             img_path = osp.join(self.img_path, self.data_split, img['file_name'])
+            
+            if self.inference_mode and self.inference_path != img_path:
+                continue
+                
             capture_id = img['capture']
             cam = img['camera']
             frame_idx = img['frame_idx']
@@ -345,8 +352,30 @@ class BlurHand(torch.utils.data.Dataset):
         
         # prepare data for testing
         else:
+            # mano parameters for past
+            mano_param_past = data['mano_param_past']
+            if mano_param_past is not None:
+                mano_joint_img_past, mano_joint_cam_past, mano_joint_trunc_past, mano_pose_past, mano_shape_past, _ = \
+                    process_human_model_output(mano_param_past, data['cam_param'], do_flip,
+                                               img_shape, img2bb_trans, rot, 'mano',
+                                               self.opt_params['input_img_shape'], self.opt_params['output_hm_shape'], self.opt_params['bbox_3d_size'])
+            else:  # dummy values
+                mano_pose_past = np.zeros((mano.orig_joint_num*3), dtype=np.float32) 
+                mano_shape_past = np.zeros((mano.shape_param_dim), dtype=np.float32)
+            
+            # mano parameters for future
+            mano_param_future = data['mano_param_future']
+            if mano_param_future is not None:
+                mano_joint_img_future, mano_joint_cam_future, mano_joint_trunc_future, mano_pose_future, mano_shape_future, _ = \
+                    process_human_model_output(mano_param_future, data['cam_param'], do_flip,
+                                               img_shape, img2bb_trans, rot, 'mano',
+                                               self.opt_params['input_img_shape'], self.opt_params['output_hm_shape'], self.opt_params['bbox_3d_size'])
+            else:  # dummy values
+                mano_pose_future = np.zeros((mano.orig_joint_num*3), dtype=np.float32) 
+                mano_shape_future = np.zeros((mano.shape_param_dim), dtype=np.float32)
+
             inputs = {'img': img, 'img_path': img_path}
-            targets = {'seg_mask': seg, 'mano_pose': mano_pose, 'mano_shape': mano_shape}
+            targets = {'seg_mask': seg, 'mano_pose': mano_pose, 'mano_shape': mano_shape, 'mano_pose_past': mano_pose_past, 'mano_shape_past': mano_shape_past, 'mano_pose_future': mano_pose_future, 'mano_shape_future': mano_shape_future}
             meta_info = {'bb2img_trans': bb2img_trans, 'hand_type': 1. if data['hand_type']=='right' else 0.}
 
         return inputs, targets, meta_info
@@ -367,7 +396,9 @@ class BlurHand(torch.utils.data.Dataset):
 
             # ground-truth
             mesh_gt = out['mesh_coord_cam_gt']
-            
+            mesh_gt_past = out['mesh_coord_cam_gt_past']
+            mesh_gt_future = out['mesh_coord_cam_gt_future']
+
             joint_cam_gt = annot['joint_cam'] / 1000
             joint_cam_gt -= joint_cam_gt[self.joint_set['hand']['root_joint_idx']]
             joint_valid = annot['joint_valid']
@@ -416,6 +447,13 @@ class BlurHand(torch.utils.data.Dataset):
                 seg[seg>0] = 1.
                 seg[seg<=0] = 0.
                 dic = dice_coef(seg, out['seg_mask_gt'])
+                if dic < 0.2:
+                    # write the image path and dice value to a txt file
+                    base_directory = "/home/zzq/Xinpeng/BlurHand_RELEASE/"
+                    txt_file_path = os.path.join(base_directory, "seg_masks_dce_less02.txt")
+                    with open(txt_file_path, "a") as file:
+                        file_path = annot['img_path']
+                        file.write(f"{dic}, {file_path}\n")
                 eval_result['Dice'].append(dic)
 
             # save obj files
@@ -437,6 +475,12 @@ class BlurHand(torch.utils.data.Dataset):
                 save_obj(mesh_out*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}.obj'))
                 save_obj(mesh_out_past*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_p.obj'))
                 save_obj(mesh_out_future*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_f.obj'))
+
+                if self.opt['test'].get('save_obj_gt', False):
+                    save_obj(mesh_gt*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_gt.obj'))
+                    save_obj(mesh_gt_past*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_p_gt.obj'))
+                    save_obj(mesh_gt_future*np.array([1,-1,-1]), mano.face['right'], osp.join(obj_dir, f'{basename}_f_gt.obj'))
+
             
             # visualize motion in the video format
             if self.opt['test'].get('visualize_video', False):
@@ -449,7 +493,6 @@ class BlurHand(torch.utils.data.Dataset):
             # calculating MPVPE
             if annot['mano_param'] is not None:
                 eval_result['mpvpe'].append((np.sqrt(np.sum(((mesh_out - mesh_gt)**2), 1)) * 1000).mean())
-            
 
             # calculating MPJPE
             past_pred_err_pf = []
@@ -498,7 +541,7 @@ class BlurHand(torch.utils.data.Dataset):
             logger.info('MPJPE @ PAST: %.2f mm' % np.mean(eval_result['mpjpe_past']))
             logger.info('MPJPE @ FUTURE: %.2f mm' % np.mean(eval_result['mpjpe_future']))    
         logger.info('MPVPE @ CURRENT: %.2f mm' % np.mean(eval_result['mpvpe']))
-        logger.info('Dice @ CURRENT: %.2f mm' % np.mean(eval_result['Dice']))
+        logger.info('Dice @ CURRENT: %.2f ' % np.mean(eval_result['Dice']))
         return
     
     def __len__(self):

@@ -1,7 +1,10 @@
 name: test3_fuser
-num_gpus: 2  # set num_gpus: 0 for cpu mode
-num_threads: 24
+num_gpus: 1  # set num_gpus: 0 for cpu mode
+num_threads: 48
 manual_seed: 0
+inference_mode: True
+inference_path:   datasets/BlurHand/blur_images/test/Capture0/ROM04_RT_Occlusion/cam400480/image18634.png
+
 
 # task related parameters
 task_parameters:
@@ -40,8 +43,9 @@ network:
 
 # testing configurations
 test:
-  save_obj: false
+  save_obj: true
+  save_obj_gt: true
   visualize_video: false  # mesh sequence to video
   evaluate_both_ends: true  # evaluate hands on both ends
   epoch: 15
-  batch_size: 256
+  batch_size: 1
