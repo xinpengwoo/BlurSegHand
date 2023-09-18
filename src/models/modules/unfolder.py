@@ -23,8 +23,6 @@ class Unfolder(nn.Module):
 
     def forward(self, feat_blur_img, feat_pyramid_img, feat_blur_seg, feat_pyramid_seg):
         # extract feature using each separate decoder
-        feat_md, pred_heatmap_md = self.decoder_md(feat_blur_img, feat_pyramid_img)
-
         # <MODIFIED/> give 2 side decoder variance info
         feat_blur_img_seg = torch.cat((feat_blur_img, feat_blur_seg), dim=1)
         # fuse image and seg mask feature
