@@ -67,28 +67,17 @@ def cacuclate_variance(data,var_path):
         pixel_values[:, :, :, i] = image.astype(np.float32) #/ 255.0  # Normalize pixel values to [0, 1]
         
     variance = np.var(pixel_values, axis=3)
-    cv2.imwrite(var_path, np.uint8(variance))
 
-    # difference
-    # blurry_40 = cv2.imread("./blurry_33_l1.png", cv2.IMREAD_COLOR)
-    # generated = blurry_40.astype(np.float32)
-    # blurry = cv2.imread(images_path+"/blur_image22396.png", cv2.IMREAD_COLOR)
-    # gt = blurry.astype(np.float32)
-    # result = generated - gt
-    # #cv2.imwrite("difference.png", np.uint8(result))
-    # print("max_value:",np.max(result))
-    # print("min_value:",np.min(result))
-    # print("is Same?", np.all(result == 0))
-    # # caculate the difference
-    # diff = cv2.absdiff(generated, gt)
-    # diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    # ostu's thresholding
+    gray_image = cv2.cvtColor(variance, cv2.COLOR_BGR2GRAY)
 
-    # # apply threshold to get difference image
-    # _, thresholded = cv2.threshold(diff_gray, 3, 255, cv2.THRESH_BINARY)
+    _, thresholded = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # # visualize difference image
-    # cv2.imwrite("Difference_l1.png", diff)
-    # cv2.imwrite("Thresholded Difference_l1.png", thresholded)
+    # mathematical morphology - closing operation
+    kernel = np.ones((3, 3), np.uint8)
+    closing = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
+
+    cv2.imwrite(var_path, np.uint8(closing))
 
 
 class Tester(torch.utils.data.Dataset):
@@ -102,7 +91,7 @@ class Tester(torch.utils.data.Dataset):
         self.annot_path = opt_data['annot_path']
 
         # path for sharp images path
-        self.sharp_img_path = "/home/hcvl/Xinpeng/InterHand3.6M/InterHand2.6M_30fps_batch1/images"
+        self.sharp_img_path = "./dataset/InterHand3.6M/InterHand2.6M_30fps_batch1/images"
 
         # data loader and construct batch generator
         opt_data = self.opt['dataset']

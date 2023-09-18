@@ -17,7 +17,7 @@ task_parameters:
   princpt: [128, 128]  # virtual principal point position
   
 dataset:
-  name: BlurHand
+  name: BlurSegHand
   img_path: datasets/BlurHand/blur_images
   annot_path: datasets/BlurHand/annotations
   is_3d: True
@@ -43,8 +43,8 @@ network:
 
 # testing configurations
 test:
-  save_obj: true
-  save_obj_gt: true
+  save_obj: true # 3D mesh object
+  save_obj_gt: true # 3D GT mesh object
   visualize_video: false  # mesh sequence to video
   evaluate_both_ends: true  # evaluate hands on both ends
   epoch: 15

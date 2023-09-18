@@ -1,4 +1,4 @@
-name: BlurHandNet_BH
+name: BlurSegHandNet_BH
 num_gpus: 2  # if you want to set num_gpus as 1, increase the batch_size to 48
 num_threads: 32
 manual_seed: 4543
@@ -16,7 +16,7 @@ task_parameters:
 # dataset list
 dataset_list:
   dataset1:  # can be arbitrary
-    name: BlurHand
+    name: BlurSegHand
     img_path: datasets/BlurHand/blur_images
     annot_path: datasets/BlurHand/annotations
     is_3d: True

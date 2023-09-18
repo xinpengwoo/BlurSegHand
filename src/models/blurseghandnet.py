@@ -12,7 +12,7 @@ from models.modules.layer_utils import init_weights
 from utils.MANO import mano
 from models.modules.unetDecoder import UnetDecoder
 
-class BlurHandNet(nn.Module):
+class BlurSegHandNet(nn.Module):
     def __init__(self, opt, weight_init=True):
         super().__init__()
         # define trainable module
@@ -54,10 +54,6 @@ class BlurHandNet(nn.Module):
         feat_blur_img, feat_pyramid_img = self.img_backbone(inputs['img'])
         # segmentation
         seg_mask = self.seg_unetDecoder(feat_pyramid_img)
-        # img = inputs['img'].clone()
-        # for i in range(img.shape[0]):
-        #     for channel in range(img.shape[1]):
-        #         img[i, channel][seg_mask[i, 0] > 0] = 0
 
         # extract seg masked image feature from backbone
         feat_blur_seg, feat_pyramid_seg = self.seg_backbone(seg_mask)

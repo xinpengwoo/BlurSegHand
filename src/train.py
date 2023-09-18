@@ -12,7 +12,7 @@ from utils.options import parse_options, copy_opt_file
 from utils.logger import ColorLogger, init_tb_logger
 from utils.misc import mkdir_and_rename
 from utils.timer import Timer
-from models.blurhandnet import BlurHandNet
+from models.blurseghandnet import BlurSegHandNet
 
 
 def main():
@@ -138,7 +138,7 @@ class Trainer():
     def _prepare_training(self):
         # prepare network and optimizer
         self.logger.info("Creating network and optimizer ... [seed {}]".format(self.opt['manual_seed']))
-        model = BlurHandNet(self.opt)
+        model = BlurSegHandNet(self.opt)
         model = DataParallel(model).cuda()
         optimizer = self.get_optimizer(model)
         

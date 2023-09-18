@@ -12,7 +12,7 @@ from utils.preprocessing import load_img, get_bbox, process_bbox, augmentation, 
 from utils.transforms import world2cam, cam2pixel, transform_joint_to_other_db
 from losses import dice_coef
 
-class BlurHand(torch.utils.data.Dataset):
+class BlurSegHand(torch.utils.data.Dataset):
     def __init__(self, opt, opt_data, transform, data_split):
         self.opt = opt
         self.opt_params = opt['task_parameters']
